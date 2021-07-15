@@ -1,80 +1,82 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+from streamlit_vega_lite import altair_component
 import os
 
-alt.data_transformers.disable_max_rows()
-
 # Import data
-resale_flat_prices_small_file_path = os.path.join('..', 'Cleaned Data', 'resale flat prices (small).csv')
-mrt_file_path = os.path.join('..', 'Cleaned Data', 'MRT information.csv')
-bus_stops_file_path = os.path.join('..', 'Cleaned Data', 'Bus Stops information.csv')
-bus_services_file_path = os.path.join('..', 'Cleaned Data', 'Bus Services information.csv')
-schools_file_path = os.path.join('..', 'Cleaned Data', 'Schools information.csv')
-supermarkets_file_path = os.path.join('..', 'Cleaned Data', 'supermarkets information.csv')
-parks_file_path = os.path.join('..', 'Cleaned Data', 'parks information.csv')
+resale_flat_prices_file_path = os.path.join('..', 'Cleaned Data', 'resale flat prices.csv')
+resale_flat_prices_df = pd.read_csv(resale_flat_prices_file_path)
 
-resale_flat_prices_small_df = pd.read_csv(resale_flat_prices_small_file_path)
-mrt_df = pd.read_csv(mrt_file_path)
-bus_stops_df = pd.read_csv(bus_stops_file_path)
-bus_services_df = pd.read_csv(bus_services_file_path)
-schools_df = pd.read_csv(schools_file_path)
-supermarkets_df = pd.read_csv(supermarkets_file_path)
-parks_df = pd.read_csv(parks_file_path)
+resale_flat_prices_grouped = resale_flat_prices_df.groupby('district').mean().reset_index()[['district', 'resale_price']]
+resale_flat_prices_index = resale_flat_prices_df.groupby('date_sold').mean().reset_index()
 
-resale_flat_prices_url = 'https://raw.githubusercontent.com/poimgs/Perspectives-on-Singapore-Housing-Prices/main/Cleaned%20Data/resale%20flat%20prices.csv'
-resale_flat_prices_small_url = 'https://raw.githubusercontent.com/poimgs/Perspectives-on-Singapore-Housing-Prices/main/Cleaned%20Data/resale%20flat%20prices%20(small).csv'
-mrt_url = 'https://raw.githubusercontent.com/poimgs/Perspectives-on-Singapore-Housing-Prices/main/Cleaned%20Data/MRT%20information.csv'
-bus_stops_url = 'https://raw.githubusercontent.com/poimgs/Perspectives-on-Singapore-Housing-Prices/main/Cleaned%20Data/Bus%20Stops%20information.csv'
-bus_services_url = 'raw.githubusercontent.com/poimgs/Perspectives-on-Singapore-Housing-Prices/main/Cleaned%20Data/Bus%20Services%20information.csv'
-schools_url = 'hhttps://raw.githubusercontent.com/poimgs/Perspectives-on-Singapore-Housing-Prices/main/Cleaned%20Data/Schools%20information.csv'
-supermarkets_url = 'https://raw.githubusercontent.com/poimgs/Perspectives-on-Singapore-Housing-Prices/main/Cleaned%20Data/supermarkets%20information.csv'
-parks_url = 'https://raw.githubusercontent.com/poimgs/Perspectives-on-Singapore-Housing-Prices/main/Cleaned%20Data/parks%20information.csv'
+# csv file from github url
+singapore_districts_map_url = 'https://raw.githubusercontent.com/poimgs/Perspectives-on-Singapore-Housing-Prices/main/Helper%20Data/singapore%20topo%20map.json'
 
-st.title('Hello World')
+# Price Index
+@st.cache
+def create_price_index():
+    selection = alt.selection_interval()
 
-desired_state = st.radio('Overview or single address?', ('Overview', 'Single'))
+    return alt.Chart(resale_flat_prices_index).mark_line().encode(
+        x=alt.X('date_sold:T'),
+        y='resale_price:Q',
+    ).add_selection(
+        selection
+    )
 
-if desired_state == 'Overview':
-    st.write('overview it is!')
-else:
-    st.write('Single address it is!')
+# Map
+single_selection = alt.selection_single()
 
-singapore_districts_map_url = 'https://raw.githubusercontent.com/lozy219/angular-singapore-district-map/master/src/district.json'
-singapore_districts = alt.Data(url=singapore_districts_map_url,
-                               format=alt.DataFormat(property='features',
-                                                     type='json'))
-
+singapore_districts = alt.topo_feature(singapore_districts_map_url, 'data')
 singapore_districts_map = alt.Chart(singapore_districts).mark_geoshape(
+    stroke='white'
+).transform_lookup(
+    lookup='properties.id',
+    from_=alt.LookupData(resale_flat_prices_grouped, 'district', ['resale_price'])
+).encode(
+    color=alt.condition(single_selection, 'resale_price:Q', alt.value('lightgray')),
+    tooltip=['properties.name:N', 'properties.id:N', 'resale_price:Q']
+)
+
+singapore_districts_map_outline = alt.Chart(singapore_districts).mark_geoshape(
     fill='lightgrey',
     stroke='white',
-).encode(
-    # color='properties.id:N',
-    tooltip='properties.id:N')
+)
 
-bus_stops = alt.Chart(bus_stops_url).mark_circle(color='orange').encode(
-    longitude='Longitude:Q', latitude='Latitude:Q', tooltip='Description:N')
+singapore_resale_choropleth_map = alt.layer(singapore_districts_map_outline, singapore_districts_map).encode(
+    tooltip=['properties.name:N', 'properties.id:N']
+).add_selection(
+    single_selection
+).properties(
+    height=600,
+    width=800
+).configure_view(
+    strokeWidth=0
+)
 
-mrt_stations = alt.Chart(mrt_df.drop_duplicates(
-    subset=['STN_NAME'])).mark_circle(color='red').encode(
-        longitude='Longitude:Q', latitude='Latitude:Q', tooltip='STN_NAME:N')
+district_text = alt.Chart(resale_flat_prices_grouped).mark_text().encode(
+    text='district:N',
+    y=alt.Y('row_number:O',axis=None)
+).transform_window(
+    row_number='row_number()'
+)
 
-schools = alt.Chart(schools_df.dropna(subset=['longitude'])).mark_circle(
-    color='yellow').encode(longitude='longitude:Q',
-                           latitude='latitude:Q',
-                           tooltip='school_name:N')
 
-supermarkets = alt.Chart(supermarkets_df.dropna(
-    subset=['longitude'])).mark_circle(color='green').encode(
-        longitude='longitude:Q',
-        latitude='latitude:Q',
-        tooltip='business_name:N')
+# combined_chart = alt.vconcat(singapore_resale_choropleth_map, district_text).properties(
+#     height=600,
+#     width=800
+# ).configure_view(
+#     strokeWidth=0
+# )
 
-parks = alt.Chart(parks_url).mark_circle(color='blue').encode(
-    longitude='longitude:Q', latitude='latitude:Q', tooltip='Name:N')
 
-test_chart = alt.layer(singapore_districts_map, mrt_stations, schools,
-                       supermarkets, parks).properties(
-                           width=800, height=600).configure_view(strokeWidth=0)
+st.title('Hello World!')
+# st.altair_chart(create_map())
 
-st.altair_chart(test_chart)
+st.altair_chart(singapore_resale_choropleth_map)
+# st.altair_chart(HDB_resale_price_index)
+test_selection = altair_component(create_price_index())
+st.write(test_selection)
+# st.altair_chart(district_text)
