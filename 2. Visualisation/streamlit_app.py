@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
-from streamlit_vega_lite import altair_component
+# from streamlit_vega_lite import altair_component
 import os
 
 # Import data
@@ -56,27 +56,12 @@ singapore_resale_choropleth_map = alt.layer(singapore_districts_map_outline, sin
     strokeWidth=0
 )
 
-district_text = alt.Chart(resale_flat_prices_grouped).mark_text().encode(
-    text='district:N',
-    y=alt.Y('row_number:O',axis=None)
-).transform_window(
-    row_number='row_number()'
-)
-
-
-# combined_chart = alt.vconcat(singapore_resale_choropleth_map, district_text).properties(
-#     height=600,
-#     width=800
-# ).configure_view(
-#     strokeWidth=0
-# )
-
 
 st.title('Hello World!')
 # st.altair_chart(create_map())
 
 st.altair_chart(singapore_resale_choropleth_map)
 # st.altair_chart(HDB_resale_price_index)
-test_selection = altair_component(create_price_index())
-st.write(test_selection)
+# test_selection = altair_component(create_price_index())
+# st.write(test_selection)
 # st.altair_chart(district_text)
