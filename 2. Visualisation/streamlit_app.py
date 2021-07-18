@@ -1,67 +1,50 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+# import requests
 # from streamlit_vega_lite import altair_component
 import os
 
-# Import data
+# # Import data 
 resale_flat_prices_file_path = os.path.join('..', 'Cleaned Data', 'resale flat prices.csv')
+resale_flat_prices_small_file_path = os.path.join('..', 'Cleaned Data', 'resale flat prices (small).csv')
+mrt_file_path = os.path.join('..', 'Cleaned Data', 'MRT information.csv')
+bus_stops_file_path = os.path.join('..', 'Cleaned Data', 'Bus Stops information.csv')
+bus_services_file_path = os.path.join('..', 'Cleaned Data', 'Bus Services information.csv')
+schools_file_path = os.path.join('..', 'Cleaned Data', 'Schools information.csv')
+supermarkets_file_path = os.path.join('..', 'Cleaned Data', 'supermarkets information.csv')
+parks_file_path = os.path.join('..', 'Cleaned Data', 'parks information.csv')
+
 resale_flat_prices_df = pd.read_csv(resale_flat_prices_file_path)
+resale_flat_prices_small_df = pd.read_csv(resale_flat_prices_small_file_path)
+mrt_df = pd.read_csv(mrt_file_path)
+bus_stops_df = pd.read_csv(bus_stops_file_path)
+bus_services_df = pd.read_csv(bus_services_file_path)
+schools_df = pd.read_csv(schools_file_path)
+supermarkets_df = pd.read_csv(supermarkets_file_path)
+parks_df = pd.read_csv(parks_file_path)
 
-resale_flat_prices_grouped = resale_flat_prices_df.groupby('district').mean().reset_index()[['district', 'resale_price']]
-resale_flat_prices_index = resale_flat_prices_df.groupby('date_sold').mean().reset_index()
+# data urls
+resale_flat_prices_small_url = 'https://raw.githubusercontent.com/poimgs/Perspectives-on-Singapore-Housing-Prices/main/Cleaned%20Data/resale%20flat%20prices%20(small).csv'
+mrt_url = 'https://raw.githubusercontent.com/poimgs/Perspectives-on-Singapore-Housing-Prices/main/Cleaned%20Data/MRT%20information.csv'
+bus_stops_url = 'https://raw.githubusercontent.com/poimgs/Perspectives-on-Singapore-Housing-Prices/main/Cleaned%20Data/Bus%20Stops%20information.csv'
+bus_services_url = 'raw.githubusercontent.com/poimgs/Perspectives-on-Singapore-Housing-Prices/main/Cleaned%20Data/Bus%20Services%20information.csv'
+schools_url = 'hhttps://raw.githubusercontent.com/poimgs/Perspectives-on-Singapore-Housing-Prices/main/Cleaned%20Data/Schools%20information.csv'
+supermarkets_url = 'https://raw.githubusercontent.com/poimgs/Perspectives-on-Singapore-Housing-Prices/main/Cleaned%20Data/supermarkets%20information.csv'
+parks_url = 'https://raw.githubusercontent.com/poimgs/Perspectives-on-Singapore-Housing-Prices/main/Cleaned%20Data/parks%20information.csv'
 
-# csv file from github url
-singapore_districts_map_url = 'https://raw.githubusercontent.com/poimgs/Perspectives-on-Singapore-Housing-Prices/main/Helper%20Data/singapore%20topo%20map.json'
+#Altair charts
 
-# Price Index
-@st.cache
-def create_price_index():
-    selection = alt.selection_interval()
-
-    return alt.Chart(resale_flat_prices_index).mark_line().encode(
-        x=alt.X('date_sold:T'),
-        y='resale_price:Q',
-    ).add_selection(
-        selection
-    )
-
-# Map
-single_selection = alt.selection_single()
-
-singapore_districts = alt.topo_feature(singapore_districts_map_url, 'data')
-singapore_districts_map = alt.Chart(singapore_districts).mark_geoshape(
-    stroke='white'
-).transform_lookup(
-    lookup='properties.id',
-    from_=alt.LookupData(resale_flat_prices_grouped, 'district', ['resale_price'])
-).encode(
-    color=alt.condition(single_selection, 'resale_price:Q', alt.value('lightgray')),
-    tooltip=['properties.name:N', 'properties.id:N', 'resale_price:Q']
-)
-
-singapore_districts_map_outline = alt.Chart(singapore_districts).mark_geoshape(
-    fill='lightgrey',
-    stroke='white',
-)
-
-singapore_resale_choropleth_map = alt.layer(singapore_districts_map_outline, singapore_districts_map).encode(
-    tooltip=['properties.name:N', 'properties.id:N']
-).add_selection(
-    single_selection
-).properties(
-    height=600,
-    width=800
-).configure_view(
-    strokeWidth=0
-)
+# price index
+resale_flat_prices_index_viz = alt.Chart(resale_flat_prices_small_url).mark_line().encode(
+    x='date_sold:T',
+    y='mean(resale_price):Q'
+).interactive()
 
 
-st.title('Hello World!')
-# st.altair_chart(create_map())
 
-st.altair_chart(singapore_resale_choropleth_map)
-# st.altair_chart(HDB_resale_price_index)
-# test_selection = altair_component(create_price_index())
-# st.write(test_selection)
-# st.altair_chart(district_text)
+# Streamlit app 
+st.title('HDB resale prices in Singapore')
+
+# Altair visualisations on stremalit
+st.altair_chart(resale_flat_prices_index_viz)
