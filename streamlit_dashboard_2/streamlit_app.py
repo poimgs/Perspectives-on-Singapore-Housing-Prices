@@ -12,9 +12,9 @@ st.set_page_config(
 
 # Import relevant data
 resale_flat_prices_current_year_file_path = os.path.join(
-    '..', 'Cleaned Data', 'resale flat prices (current year).csv')
+    'Cleaned Data', 'resale flat prices (current year).csv')
 unique_hdb_flats_file_path = os.path.join(
-    '..', 'Cleaned Data', 'unique HDB flats.csv')
+    'Cleaned Data', 'unique HDB flats.csv')
 
 resale_flat_prices_current_year_df = import_resale_prices(
     resale_flat_prices_current_year_file_path)
