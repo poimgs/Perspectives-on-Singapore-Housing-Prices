@@ -27,7 +27,7 @@ st.write('''
 ''')
 
 # Instructions
-with st.beta_expander('Instructions'):
+with st.expander('Instructions'):
     st.write('''
         Below, you can see the Singapore map with HDB information distributed by districts.
 
