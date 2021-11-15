@@ -39,7 +39,7 @@ with st.expander('Instructions'):
     ''')
 
 # Comparison options
-comparison_1, comparison_2, comparison_variable = st.beta_columns(3)
+comparison_1, comparison_2, comparison_variable = st.columns(3)
 selected_comparison_1 = comparison_1.selectbox(
     'Town 1',
     ['None', 'Ang Mo Kio', 'Bedok', 'Bishan', 'Bukit Batok', 'Geylang', 'Bukit Merah', 'Bukit Timah', 'Central Area', 'Choa Chu Kang', 'Clementi', 'Hougang', 'Jurong East', 'Jurong West',
